@@ -137,7 +137,7 @@ public partial class Form1 : Form
 
         if (_isCalculateCountRowsForAddTaskActive)
         {
-            MessageBox.Show("Task for calculate count rows for add alredy running. Wait");
+            MessageBox.Show("Task for calculate count rows for add already running. Wait");
             return;
         }
 
@@ -191,7 +191,7 @@ public partial class Form1 : Form
 
         if (_isCalculateCountRowsForAddTaskActive)
         {
-            MessageBox.Show("Task for calculate count rows for add alredy running. Wait");
+            MessageBox.Show("Task for calculate count rows for add already running. Wait");
             return;
         }
 
@@ -276,12 +276,12 @@ public partial class Form1 : Form
     {
         if (_isCalculateCountRowsForAddTaskActive)
         {
-            MessageBox.Show("Task for calculate count rows for add alredy running. Wait");
+            MessageBox.Show("Task for calculate count rows for add already running. Wait");
             return;
         }
         if (_isGenerateFilesTaskActive)
         {
-            MessageBox.Show("Task for generate files alredy running. Wait");
+            MessageBox.Show("Task for generate files already running. Wait");
             return;
         }
         string outputPath = $"{_folderPath}\\{_concatFile}";

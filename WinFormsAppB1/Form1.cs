@@ -363,7 +363,7 @@ public partial class Form1 : Form
 
         try
         {
-            BigInteger sumOfInt = dbHelper.CalculateSumOfInt("Data");
+            int sumOfInt = dbHelper.CalculateSumOfInt("Data");
             labelSumInt.Text = sumOfInt.ToString();
             labelSumInt.Visible = true;
         }

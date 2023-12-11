@@ -217,9 +217,9 @@ public class DBHelper
     /// </summary>
     /// <param name="table">The name of the table containing integer values for summation.</param>
     /// <returns>The sum of integer values from the specified table.</returns>
-    public BigInteger CalculateSumOfInt(string table)
+    public int CalculateSumOfInt(string table)
     {
-        BigInteger sumInt = 0;
+        int sumInt = 0;
         string queryForGetCountOfImportedRows = $"SELECT SUM(IntNumber) AS SumOfInt FROM {table}";
 
         using (SqlConnection connection = new SqlConnection(ConnectionString))
@@ -230,7 +230,7 @@ public class DBHelper
 
             if (reader.Read())
             {
-                sumInt = reader.GetFieldValue<BigInteger>(0);
+                sumInt = reader.GetFieldValue<Int32>(0);
             }
             reader.Close();
         }

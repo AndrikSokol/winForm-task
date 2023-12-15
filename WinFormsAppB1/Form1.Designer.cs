@@ -50,7 +50,14 @@
             buttonCalculateAvgOfFloat = new Button();
             panel1 = new Panel();
             label1 = new Label();
+            buttonLoadOSV = new Button();
+            dataGridViewFilesName = new DataGridView();
+            ColumnFileName = new DataGridViewTextBoxColumn();
+            labelOSVLoad = new Label();
+            dataGridViewOSV = new DataGridView();
             panel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridViewFilesName).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridViewOSV).BeginInit();
             SuspendLayout();
             // 
             // buttonGenerateFiles
@@ -216,7 +223,7 @@
             // 
             buttonCalculateSumOfInt.FlatStyle = FlatStyle.System;
             buttonCalculateSumOfInt.Font = new Font("Arial Narrow", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
-            buttonCalculateSumOfInt.Location = new Point(7, 217);
+            buttonCalculateSumOfInt.Location = new Point(33, 207);
             buttonCalculateSumOfInt.Name = "buttonCalculateSumOfInt";
             buttonCalculateSumOfInt.Size = new Size(112, 36);
             buttonCalculateSumOfInt.TabIndex = 17;
@@ -228,7 +235,7 @@
             // 
             labelSumInt.AutoSize = true;
             labelSumInt.Font = new Font("Arial Narrow", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
-            labelSumInt.Location = new Point(174, 228);
+            labelSumInt.Location = new Point(161, 215);
             labelSumInt.Name = "labelSumInt";
             labelSumInt.Size = new Size(75, 20);
             labelSumInt.TabIndex = 18;
@@ -238,7 +245,7 @@
             // 
             labelAvgFloat.AutoSize = true;
             labelAvgFloat.Font = new Font("Arial Narrow", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
-            labelAvgFloat.Location = new Point(174, 287);
+            labelAvgFloat.Location = new Point(161, 274);
             labelAvgFloat.Name = "labelAvgFloat";
             labelAvgFloat.Size = new Size(83, 20);
             labelAvgFloat.TabIndex = 19;
@@ -248,7 +255,7 @@
             // 
             buttonCalculateAvgOfFloat.FlatStyle = FlatStyle.System;
             buttonCalculateAvgOfFloat.Font = new Font("Arial Narrow", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
-            buttonCalculateAvgOfFloat.Location = new Point(8, 276);
+            buttonCalculateAvgOfFloat.Location = new Point(34, 266);
             buttonCalculateAvgOfFloat.Name = "buttonCalculateAvgOfFloat";
             buttonCalculateAvgOfFloat.Size = new Size(112, 36);
             buttonCalculateAvgOfFloat.TabIndex = 20;
@@ -273,27 +280,79 @@
             panel1.Controls.Add(labelRemainingRowsValue);
             panel1.Controls.Add(labelCountOfAddedInExcel);
             panel1.Controls.Add(labelCountOfAddedInExcelValue);
-            panel1.Location = new Point(407, 12);
+            panel1.Location = new Point(549, 12);
             panel1.Name = "panel1";
-            panel1.Size = new Size(308, 337);
+            panel1.Size = new Size(303, 318);
             panel1.TabIndex = 21;
             // 
             // label1
             // 
             label1.AutoSize = true;
             label1.Font = new Font("Arial Narrow", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
-            label1.Location = new Point(95, 194);
+            label1.Location = new Point(121, 184);
             label1.Name = "label1";
             label1.Size = new Size(92, 20);
             label1.TabIndex = 21;
             label1.Text = "SQL Operation";
+            // 
+            // buttonLoadOSV
+            // 
+            buttonLoadOSV.Font = new Font("Times New Roman", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            buttonLoadOSV.Location = new Point(12, 148);
+            buttonLoadOSV.Name = "buttonLoadOSV";
+            buttonLoadOSV.Size = new Size(111, 36);
+            buttonLoadOSV.TabIndex = 22;
+            buttonLoadOSV.Text = "Load OSV";
+            buttonLoadOSV.UseVisualStyleBackColor = true;
+            buttonLoadOSV.Click += buttonLoadOSV_Click;
+            // 
+            // dataGridViewFilesName
+            // 
+            dataGridViewFilesName.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewFilesName.Columns.AddRange(new DataGridViewColumn[] { ColumnFileName });
+            dataGridViewFilesName.Location = new Point(12, 190);
+            dataGridViewFilesName.Name = "dataGridViewFilesName";
+            dataGridViewFilesName.RowTemplate.Height = 25;
+            dataGridViewFilesName.Size = new Size(531, 140);
+            dataGridViewFilesName.TabIndex = 23;
+            dataGridViewFilesName.CellMouseClick += dataGridViewFilesName_CellMouseClick;
+            // 
+            // ColumnFileName
+            // 
+            ColumnFileName.HeaderText = "File";
+            ColumnFileName.Name = "ColumnFileName";
+            ColumnFileName.ReadOnly = true;
+            ColumnFileName.Width = 480;
+            // 
+            // labelOSVLoad
+            // 
+            labelOSVLoad.AutoSize = true;
+            labelOSVLoad.Font = new Font("Times New Roman", 11.25F, FontStyle.Regular, GraphicsUnit.Point);
+            labelOSVLoad.Location = new Point(144, 158);
+            labelOSVLoad.Name = "labelOSVLoad";
+            labelOSVLoad.Size = new Size(106, 17);
+            labelOSVLoad.TabIndex = 24;
+            labelOSVLoad.Text = "Load Osv Status";
+            // 
+            // dataGridViewOSV
+            // 
+            dataGridViewOSV.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
+            dataGridViewOSV.Location = new Point(10, 338);
+            dataGridViewOSV.Name = "dataGridViewOSV";
+            dataGridViewOSV.RowTemplate.Height = 25;
+            dataGridViewOSV.Size = new Size(842, 185);
+            dataGridViewOSV.TabIndex = 25;
             // 
             // Form1
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.MenuBar;
-            ClientSize = new Size(727, 450);
+            ClientSize = new Size(864, 535);
+            Controls.Add(dataGridViewOSV);
+            Controls.Add(labelOSVLoad);
+            Controls.Add(dataGridViewFilesName);
+            Controls.Add(buttonLoadOSV);
             Controls.Add(panel1);
             Controls.Add(labelConcatFiles);
             Controls.Add(labelFilter);
@@ -306,6 +365,8 @@
             Text = "B1 Task";
             panel1.ResumeLayout(false);
             panel1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)dataGridViewFilesName).EndInit();
+            ((System.ComponentModel.ISupportInitialize)dataGridViewOSV).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -334,5 +395,10 @@
         private Button buttonCalculateAvgOfFloat;
         private Panel panel1;
         private Label label1;
+        private Button buttonLoadOSV;
+        private DataGridView dataGridViewFilesName;
+        private Label labelOSVLoad;
+        private DataGridView dataGridViewOSV;
+        private DataGridViewTextBoxColumn ColumnFileName;
     }
 }

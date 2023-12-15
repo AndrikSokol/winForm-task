@@ -14,7 +14,27 @@ public class ExcelHelper : IDisposable
     public ExcelHelper()
     {
         _excelApp = new Excel.Application();
-        _workbook = _excelApp.Workbooks.Add();
+    }
+
+    /// <summary>
+    /// Convert Data to object for write in Excel.
+    /// </summary>
+    /// <param name="rowsToAdd">count of row to add in Excel.</param>
+    /// <param name="colsToAdd">count of col to add in Excel.</param>
+    /// <param name="partOfData">part of data to write.</param>
+    /// <returns>Array of objects</returns>
+    private object[,] ConvertDataToObject(int rowsToAdd, int colsToAdd, List<string[]> partOfData)
+    {
+        object[,] dataArray = new object[rowsToAdd, colsToAdd];
+
+        for (int row = 0; row < rowsToAdd; row++)
+        {
+            for (int col = 0; col < colsToAdd; col++)
+            {
+                dataArray[row, col] = partOfData[row][col];
+            }
+        }
+        return dataArray;
     }
 
     /// <summary>
@@ -26,12 +46,14 @@ public class ExcelHelper : IDisposable
     /// <param name="limit">limit that used to divide data on chunks.</param>
     public void AddDataInExcel(string filePath, Action<int, int, int> progressCallback, int countRowsForAddInExcel, int limit)
     {
+        _workbook = _excelApp.Workbooks.Add();
         var lineCount = File.ReadLines(filePath).Count();
         List<string[]> partOfData = new List<string[]>();
 
         int index = 1;
         int countAddRows = 0;
         int worksheetIndex = 1;
+        int countAddRowsInWoorkSheets = 0;
 
         if (lineCount > limit)
             partOfData.EnsureCapacity(limit);
@@ -48,26 +70,19 @@ public class ExcelHelper : IDisposable
 
                 if (partOfData.Count == limit || countAddRows == 1_000_000)
                 {
-                    progressCallback(countAddRows + (worksheetIndex - 1) * 1_000_000, countRowsForAddInExcel - (countAddRows + (worksheetIndex - 1) * 1_000_000), ((countAddRows + (worksheetIndex - 1) * 1_000_000) * 100) / countRowsForAddInExcel);
-
-                    int rowsToAdd = partOfData.Count;
-                    int colsToAdd = partOfData[0].Length;
+                    countAddRowsInWoorkSheets = countAddRows + (worksheetIndex - 1) * 1_000_000;
+                    progressCallback(countAddRowsInWoorkSheets, countRowsForAddInExcel - countAddRowsInWoorkSheets, (countAddRowsInWoorkSheets * 100) / countRowsForAddInExcel);
 
                     Excel.Worksheet currentSheet = (Excel.Worksheet)_workbook.Sheets[worksheetIndex];
                     Excel.Range startCell = currentSheet.Cells[(index - 1) * limit + 1, 1];
                     Excel.Range endCell = currentSheet.Cells[index * limit, 5];
                     Excel.Range writeRange = currentSheet.Range[startCell, endCell];
-                    object[,] dataArray = new object[rowsToAdd, colsToAdd];
 
-                    for (int row = 0; row < rowsToAdd; row++)
-                    {
-                        for (int col = 0; col < colsToAdd; col++)
-                        {
-                            dataArray[row, col] = partOfData[row][col];
-                        }
-                    }
+                    int rowsToAdd = partOfData.Count;
+                    int colsToAdd = partOfData[0].Length;
+
+                    object[,] dataArray = ConvertDataToObject(rowsToAdd, colsToAdd, partOfData);
                     writeRange.Value2 = dataArray;
-
                     partOfData.Clear();
                     index++;
 
@@ -92,44 +107,90 @@ public class ExcelHelper : IDisposable
                 Excel.Range endCell = currentSheet.Cells[(index - 1) * limit + partOfData.Count, 5];
                 Excel.Range writeRange = currentSheet.Range[startCell, endCell];
 
-                object[,] dataArray = new object[rowsToAdd, colsToAdd];
-
-                for (int row = 0; row < rowsToAdd; row++)
-                {
-                    for (int col = 0; col < colsToAdd; col++)
-                    {
-                        dataArray[row, col] = partOfData[row][col];
-                    }
-                }
+                object[,] dataArray = ConvertDataToObject(rowsToAdd, colsToAdd, partOfData);
 
                 writeRange.Value2 = dataArray;
                 partOfData.Clear();
             }
-            _workbook.SaveAs(Environment.CurrentDirectory+"\\ImportedData.xlsx");
+            _workbook.SaveAs(Environment.CurrentDirectory + "\\ImportedData.xlsx");
         }
+        _workbook.Close();
+
         Console.WriteLine("Data imported to Excel successfully.");
     }
 
     /// <summary>
-    /// Method that release memory of instance for excel obj.
+    /// Read OSV excel file.
     /// </summary>
-    /// <param name="obj">inscance of excel component.</param>
-    private static void ReleaseObject(object obj)
+    /// <param name="filePath">FilePath to excel file.</param>
+    /// <returns>Dictionary</returns>
+    /// <exception cref="ArgumentException"></exception>
+    public async Task<Dictionary<(int, string), List<List<double>>>> ReadOSV(string filePath)
     {
-        try
+        string localFilePath = filePath;
+
+        return await Task.Run(() =>
         {
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(obj);
-            obj = null;
-        }
-        catch (Exception ex)
-        {
-            obj = null;
-            Console.WriteLine("Exception Occurred while releasing object " + ex.ToString());
-        }
-        finally
-        {
-            GC.Collect();
-        }
+            Excel.Workbook xlWorkbook = _excelApp.Workbooks.Open(localFilePath);
+            Excel._Worksheet xlWorksheet = xlWorkbook.Sheets[1];
+            Excel.Range xlRange = xlWorksheet.UsedRange;
+
+            int rowCount = xlRange.Rows.Count;
+            int colCount = xlRange.Columns.Count;
+            Dictionary<(int, string), List<List<double>>> bankClasses = new();
+            int indexClass = -1;
+            string ClassName = "";
+            List<double> values = new();
+            values.EnsureCapacity(7);
+
+            for (int i = 1; i <= rowCount; i++)
+            {
+                for (int j = 1; j <= colCount; j++)
+                {
+
+                    if (xlRange.Cells[i, j] == null || xlRange.Cells[i, j].Value2 == null)
+                        break;
+
+                    string text = xlRange.Cells[i, j].Value2.ToString();
+
+                    if (text.ToUpper().Contains("КЛАСС"))
+                    {
+                        string[] textPart = text.Split(" ");
+                        if (textPart.Length <= 2)
+                            break;
+
+                        if (!Int32.TryParse(textPart[2], out indexClass))
+                            throw new ArgumentException(textPart[1], "not is int");
+
+                        ClassName = String.Join(" ", textPart[4..]);
+
+                        continue;
+                    }
+
+                    if (indexClass == -1)
+                        break;
+
+                    if (!double.TryParse(xlRange.Cells[i, j].Value2.ToString(), out double result))
+                        break;
+
+                    values.Add(result);
+                }
+                if (values.Count == 7)
+                {
+                    var key = (indexClass, ClassName);
+
+                    if (!bankClasses.ContainsKey(key))
+                    {
+                        bankClasses[key] = new List<List<double>>(); // Initialize the key if it doesn't exist
+                    }
+
+                    bankClasses[key].Add(new List<double>(values)); // Add values to the corresponding key
+                }
+                values.Clear();
+            }
+
+            return bankClasses;
+        });
     }
 
     /// <summary>
@@ -139,11 +200,7 @@ public class ExcelHelper : IDisposable
     {
         try
         {
-            _workbook.Close();
             _excelApp.Quit();
-
-            ReleaseObject(_workbook);
-            ReleaseObject(_excelApp);
         }
         catch (Exception ex)
         {

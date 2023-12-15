@@ -1,6 +1,5 @@
-﻿using System.Data.SqlClient;
-using System.Numerics;
-using System.Text;
+﻿using System.Data;
+using System.Data.SqlClient;
 
 namespace WinFormsAppB1.DB;
 
@@ -9,45 +8,55 @@ public class DBHelper
     public string ConnectionString { get; set; }
     public string DatabaseName { get; }
 
+    private Task _initializationTask;
+    public Task InitializationTask => _initializationTask;
+
     /// <summary>
-    /// Constructor for create instance of DBHelper for local MSSQL.Default connection 
+    /// Constructor for create instance of DBHelper for local MSSQL.
+    /// If database wasnt exists will create database.
     /// "Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;".
     /// </summary>
     /// <param name="databaseName">This database name will be used in current instance.</param>
     public DBHelper(string databaseName)
     {
-        ConnectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;";
         DatabaseName = databaseName;
+        _initializationTask = InitializeAsync();
     }
 
     /// <summary>
-    /// Check connection and is exists database.
+    /// Check valid connection.
+    /// Check Database.
+    /// Create if doesn't  find.
     /// </summary>
-    /// <returns>A bool that has successful or failure access.</returns>
-    public bool IsDBExists()
+    /// <returns>async Task</returns>
+    private async Task InitializeAsync()
     {
-
-        if (IsServerConnected())
+        try
         {
-            Console.WriteLine("Connection successfull");
+            ConnectionString = @"Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;";
 
-            if (!IsDatabaseExists())
+            if (IsServerConnected())
             {
-                Console.WriteLine($"DB'{DatabaseName}' isnt exist.");
-                return false;
+                Console.WriteLine("Connection successful");
+                if (!IsDatabaseExists())
+                {
+                    Console.WriteLine($"DB '{DatabaseName}' doesn't exist. Trying to create db");
+                    await CreateDBAsync();
+                    Console.WriteLine($"DB '{DatabaseName}' is created.");
+                }
+                ConnectionString = $@"Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;Initial Catalog={DatabaseName};";
             }
             else
             {
-                ConnectionString = $@"Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;Initial Catalog={DatabaseName};";
-                Console.WriteLine($"DB '{DatabaseName}' is exist.");
-                return true;
+                Console.WriteLine($"Can't access the connection with the server {DatabaseName}");
+                throw new Exception($"Can't establish connection to {DatabaseName}");
             }
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine("cannot access connection with server");
+            Console.WriteLine($"An error occurred during initialization: {ex.Message}");
+            throw; // Rethrow the exception to signal initialization failure
         }
-        return false;
     }
 
     /// <summary>
@@ -100,14 +109,13 @@ public class DBHelper
             await connection.OpenAsync();
             await command.ExecuteNonQueryAsync();
         }
-        ConnectionString = $@"Data Source=(LocalDB)\MSSQLLocalDB;Integrated Security=True;Initial Catalog={DatabaseName};";
     }
 
     /// <summary>
-    /// 
+    /// Checks if a table exists in the database.
     /// </summary>
-    /// <param name="tableName"></param>
-    /// <returns></returns>
+    /// <param name="tableName">The name of the table to check.</param>
+    /// <returns>True if the table exists; otherwise, false.</returns>
     public bool IsDBTableExists(string tableName)
     {
         string query = $"SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '{tableName}' AND TABLE_SCHEMA = 'dbo'";
@@ -121,19 +129,12 @@ public class DBHelper
     }
 
     /// <summary>
-    /// Checks if a table exists in the database.
+    /// Create a table in the database.
     /// </summary>
-    /// <param name="tableName">The name of the table to check.</param>
-    /// <returns>True if the table exists; otherwise, false.</returns>
-    public async Task CreateDBTableAsync(string tableName)
+    /// <param name="queryForCreateTable">SQL query.</param>
+    /// <returns>Async task</returns>
+    public async Task CreateDBTableAsync(string queryForCreateTable)
     {
-        string queryForCreateTable = $"CREATE TABLE {tableName} (" +
-            $"[Date] Date NOT NULL," +
-            $"[LatinSymbols] NVARCHAR(10) NOT NULL, " +
-            $"[RussianSymbols] NVARCHAR(10) NOT NULL, " +
-            $"[IntNumber] INT NOT NULL," +
-            $"[FloatNumber] FLOAT NOT NULL)";
-
         using (SqlConnection connection = new SqlConnection(ConnectionString))
         {
             SqlCommand command = new SqlCommand(queryForCreateTable, connection);
@@ -159,33 +160,86 @@ public class DBHelper
     }
 
     /// <summary>
-    /// Imports data into the specified database table.
+    /// Send data to SQL.
     /// </summary>
-    /// <param name="dataToImport">The data to be imported as a list of string arrays, where each array represents a row of data.</param>
-    /// <param name="tableName">The name of the table where the data will be imported.</param>
-    public void ImportData(List<string[]> dataToImport, string tableName)
+    /// <param name="query">SQL query.</param>
+    /// <returns>async Task</returns>
+    public async Task SendDataAsync(string query)
     {
-        ClearDBTable(tableName);
-        // Assuming dataToImport is a list of string arrays where each array represents a row of data
-
-        StringBuilder queryBuilder = new StringBuilder();
-        foreach (var data in dataToImport)
-        {
-            string[] dateStr = data[0].Split(".");
-            string formattedDate = $"{dateStr[2]}-{dateStr[1]}-{dateStr[0]}";
-
-            queryBuilder.Append($"INSERT INTO {tableName} VALUES ('{formattedDate}','{data[1]}','{data[2]}',{data[3]},{data[4].Replace(',', '.')})");
-        }
-
-        string query = queryBuilder.ToString();
-
         using (SqlConnection connection = new SqlConnection(ConnectionString))
         {
             SqlCommand command = new SqlCommand(query, connection);
             command.CommandTimeout = 0;
-            connection.Open();
-            command.ExecuteNonQuery();
+            await connection.OpenAsync();
+            await command.ExecuteReaderAsync();
         }
+    }
+
+    /// <summary>
+    /// Get first common id from query.
+    /// </summary>
+    /// <param name="query">SQL query.</param>
+    /// <returns>id or default 0</returns>
+    public async Task<int> GetIdAsync(string query)
+    {
+        using (SqlConnection connection = new SqlConnection(ConnectionString))
+        {
+            SqlCommand command = new SqlCommand(query, connection);
+            command.CommandTimeout = 0;
+            await connection.OpenAsync();
+            using (SqlDataReader reader = await command.ExecuteReaderAsync())
+            {
+                if (reader.Read())
+                {
+                    int id = reader.GetInt32(0); // Assuming the ID is in the first column (index 0)
+                    return id;
+                }
+            }
+        }
+        return 0;
+    }
+
+    /// <summary>
+    /// Gets Columns from table.
+    /// </summary>
+    /// <param name="query">sql query</param>
+    /// <returns>List with names from table</returns>
+    public async Task<List<string>> GetColumnAsync(string query, string column)
+    {
+        List<string> data = new();
+        using (SqlConnection connection = new SqlConnection(ConnectionString))
+        {
+            SqlCommand command = new SqlCommand(query, connection);
+            command.CommandTimeout = 0;
+            await connection.OpenAsync();
+            using (SqlDataReader dataReader = command.ExecuteReader())
+            {
+                while (dataReader.Read())
+                {
+                    data.Add(dataReader[column].ToString());
+                }
+            }
+        }
+        return data;
+    }
+
+    /// <summary>
+    /// Get a table.
+    /// </summary>
+    /// <param name="query">SQL query.</param>
+    /// <returns>Async Task with instance of Dataset</returns>
+    public async Task<DataSet> GetTableAsync(string query)
+    {
+        DataSet dataSet = new();
+        using (SqlConnection connection = new SqlConnection(ConnectionString))
+        {
+            SqlCommand command = new SqlCommand(query, connection);
+            command.CommandTimeout = 0;
+            await connection.OpenAsync();
+            SqlDataAdapter sqlDataAdapter = new SqlDataAdapter(command);
+            sqlDataAdapter.Fill(dataSet);
+        }
+        return dataSet;
     }
 
     /// <summary>
@@ -260,7 +314,6 @@ public class DBHelper
             }
             reader.Close();
         }
-
         return averageFloat;
     }
 
